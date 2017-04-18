@@ -33,12 +33,11 @@ Then:
 ```shell
 git clone git@github.com:chitika/cberl.git
 cd cberl
-# assuming you have rebar in your path
-rebar get-deps compile
+make
+# or if you don't have make: ./rebar3 do get-deps compile
 ```
 
 Or just include it as a dependency in your rebar config.
-    
 
 Example
 -------

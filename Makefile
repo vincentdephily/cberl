@@ -15,10 +15,7 @@
 # under the License.
 #
 
-ERLFLAGS= -pa $(CURDIR)/.eunit -pa $(CURDIR)/ebin -pa $(CURDIR)/deps/*/ebin
-
-DEPS_PLT=$(CURDIR)/.deps_plt
-DEPS=erts kernel stdlib
+DEPS_PLT=$(CURDIR)/_build/default/rebar3_*_plt
 
 # =============================================================================
 # Verify that the programs we need to run are installed on this system
@@ -29,7 +26,7 @@ ifeq ($(ERL),)
 $(error "Erlang not available on this system")
 endif
 
-REBAR=$(CURDIR)/rebar
+REBAR=$(CURDIR)/rebar3
 
 ifeq ($(REBAR),)
 $(error "Rebar not available on this system")
@@ -53,27 +50,21 @@ update-deps:
 	$(REBAR) compile
 
 compile:
-	$(REBAR) skip_deps=true compile
+	$(REBAR) compile
 
 doc:
-	$(REBAR) skip_deps=true doc
+	$(REBAR) edoc
 
 eunit: compile clean-common-test-data
-	$(REBAR) skip_deps=true eunit
+	$(REBAR) eunit
 
 test: compile eunit
 
-$(DEPS_PLT):
-	@echo Building local plt at $(DEPS_PLT)
-	@echo
-	dialyzer --output_plt $(DEPS_PLT) --build_plt \
-	   --apps $(DEPS) -r deps
-
-dialyzer: $(DEPS_PLT)
-	dialyzer --fullpath --plt $(DEPS_PLT) -Wrace_conditions -r ./ebin
+dialyzer:
+	$(REBAR) dialyzer
 
 typer:
-	typer --plt $(DEPS_PLT) -r ./src
+	typer --plt $(DEPS_PLT) -r ./src -I ./include
 
 shell: deps compile
 # You often want *rebuilt* rebar tests to be available to the
@@ -81,20 +72,16 @@ shell: deps compile
 # rebuilt). However, eunit runs the tests, which probably
 # fails (thats probably why You want them in the shell). This
 # runs eunit but tells make to ignore the result.
-	- @$(REBAR) skip_deps=true eunit
-	@$(ERL) $(ERLFLAGS)
+	- @$(REBAR) eunit
+	$(REBAR) shell
 
 pdf:
 	pandoc README.md -o README.pdf
 
 clean:
-	- rm -rf $(CURDIR)/test/*.beam
-	- rm -rf $(CURDIR)/logs
-	- rm -rf $(CURDIR)/ebin
-	$(REBAR) skip_deps=true clean
+	$(REBAR) clean
 
 distclean: clean
-	- rm -rf $(DEPS_PLT)
-	- rm -rvf $(CURDIR)/deps
+	rm -rf _build
 
 rebuild: distclean deps compile escript dialyzer test
